@@ -6,7 +6,7 @@
 - Ensure that the file "blockmaclist.nd" is located in /var/db/script/event directory
 - The "blockmaclist.nd" file contains the list of blocked mac addresses. This file will be added to the switch by Network Director. But, this can be created by other tools or created manually depending on the use case.
 - If a mac address in the ethernet switching table is found in the blockmaclist file, the script will generate an SNMP trap with the mac address and the interface name
-- The SNMP trap event will be named "BLKD_HST" and the message will be in the format of "<mac address>; <interface name>"
+- The SNMP trap event will be named "BLKD_HST" and the message will be in the format of "macaddress; interfacename"
 
 - The trap generation functions used in this script are taken from the following script authored by Phil Shafer
   https://github.com/Juniper/junoscriptorium/tree/master/library/juniper/event/snmp/ev-syslog-trap
