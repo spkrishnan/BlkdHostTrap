@@ -8,7 +8,7 @@
 - If a mac address in the ethernet switching table is found in the blockmaclist file, the script will generate an SNMP trap with the mac address and the interface name
 - The SNMP trap event will be named "BLKD_HST" and the message will be in the format of "<mac address>; <interface name>"
 
-- The trap generation functions used in this sript are taken from the following location authored by Phil Shafer
+- The trap generation functions used in this sript are taken from the following script authored by Phil Shafer
   https://github.com/Juniper/junoscriptorium/tree/master/library/juniper/event/snmp/ev-syslog-trap
 
 
