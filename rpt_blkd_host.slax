@@ -1,0 +1,120 @@
+/* 
+* Author: Suresh P Krishnan
+* This script runs the "show ethernet-switching table" command and looks for any mac address that is listed in the file "blockmaclist.nd"
+* Ensure that the file "blockmaclist.nd" is located in /var/db/script/event directory
+* If a mac address in the ethernet switching table is found in the blockmaclist file, the script will generate an SNMP trap with the mac address and the interface name
+* The SNMP trap event will be named "BLKD_HST" and the message will be in the format of "<mac address>; <interface name>"
+
+* The trap generation functions used in this sript are taken from the following location authored by Phil Shafer
+* https://github.com/Juniper/junoscriptorium/tree/master/library/juniper/event/snmp/ev-syslog-trap
+*/
+
+
+version 1.1;
+
+ns junos = "http://xml.juniper.net/junos/*/junos";
+ns xnm = "http://xml.juniper.net/xnm/1.1/xnm";
+ns jcs = "http://xml.juniper.net/junos/commit-scripts/1.0";
+ns ext = "http://xmlsoft.org/XSLT/namespace";
+ns slax = "http://xml.libslax.org/slax";
+ns my = "http://www.example.com/myfunctions";
+
+import "../import/junos.xsl";
+
+match / {
+	var $jnx = jcs:open();
+	var $mac_table_cmd = <command> "show ethernet-switching table"; 
+   	var $mac_table_rsp = jcs:execute( $jnx, $mac_table_cmd );
+        var $filename = '/var/db/scripts/op/blockmaclist.nd';
+	var $encoding = 'ascii';
+	var $fileget = {
+               <file-get> {
+                    <filename>$filename;
+                    <encoding>$encoding;
+               }
+          }
+
+	var $blk_list = jcs:execute($jnx, $fileget); 
+ 
+	mvar $temp = 'start here';
+	for-each ($mac_table_rsp/l2ng-l2ald-mac-entry-vlan/l2ng-mac-entry) {
+		var $pattern = ./l2ng-l2-mac-address;
+		var $results = jcs:regex($pattern, $blk_list);
+		var $int = ./l2ng-l2-mac-logical-interface;
+		if (not($results)) {
+		}
+		else {
+			var $message = $pattern _"; " _$int;
+			<output> $message;
+			copy-of my:Gen_Trap('BLKD_HST', $message);
+		}
+	}
+	var $close-results = jcs:close($jnx);	
+}
+
+
+
+function my:Gen_Trap($event, $message) {
+
+    /*
+     * trapm utilty wants the following characters in the value to be escaped
+     * '[', ']', ' ', '=', and ','
+     */
+    var $event-escaped = {
+        call escape-string($text = $event, $vec = '[] =,');
+    }
+
+    var $message-escaped = {
+        call escape-string($text = $message, $vec = '[] =,');
+    }
+
+    var $rpc = <request-snmp-generate-trap> {
+         <trap> "jnxEventTrap";
+         <variable-bindings> "jnxEventTrapDescr[0]='Event-Trap' , "
+             _ "jnxEventAvAttribute[1]='event' , "
+             _ "jnxEventAvValue[1]='" _ $event-escaped _ "' , "
+             _ "jnxEventAvAttribute[2]='message' , "
+             _ "jnxEventAvValue[1]='" _ $message-escaped _ "'";
+     }
+
+     var $res = jcs:invoke($rpc);
+}
+
+
+template escape-string ($text, $vec) {
+
+    if (jcs:empty($vec)) {
+        expr $text;
+
+    } else {
+        var $index = 1;
+        var $from = substring($vec, $index, 1);
+        var $changed-value = {
+            call replace-string($text, $from) {
+                with $to = {
+                    expr "\\";
+                    expr $from;
+                 }
+            }
+        }
+
+        call escape-string($text = $changed-value, $vec = substring($vec, $index + 1));
+    }
+}
+
+template replace-string ($text, $from, $to) {
+
+    if (contains($text, $from)) {
+        var $before = substring-before($text, $from);
+        var $after = substring-after($text, $from);
+        var $prefix = $before _  $to;
+
+        expr $before;
+        expr $to;
+        call replace-string($text = $after, $from, $to);
+
+    } else {
+        expr $text;
+    }
+}
+
