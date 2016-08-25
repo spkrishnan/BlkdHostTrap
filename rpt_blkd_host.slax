@@ -48,7 +48,6 @@ match / {
 		}
 		else {
 			var $message = $pattern _"; " _$int;
-			<output> $message;
 			copy-of my:Gen_Trap('BLKD_HST', $message);
 		}
 	}
