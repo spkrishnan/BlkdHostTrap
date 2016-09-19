@@ -28,7 +28,7 @@ match / {
 	var $jnx = jcs:open();
 	var $mac_table_cmd = <command> "show ethernet-switching table"; 
    	var $mac_table_rsp = jcs:execute( $jnx, $mac_table_cmd );
-        var $filename = '/var/db/scripts/op/blockmaclist.nd';
+        var $filename = '/var/db/scripts/event/blockmaclist.nd';
 	var $encoding = 'ascii';
 	var $fileget = {
                <file-get> {
